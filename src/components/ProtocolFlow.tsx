@@ -1,9 +1,9 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { User, Server, ShieldAlert, Activity, Bot, ClipboardList, Code, Fingerprint, CheckCircle2, Circle } from 'lucide-react';
 import { ACTORS } from '../lib/protocol/actors';
-import type { Actor } from '../lib/protocol/types';
+import type { Actor, ProtocolStep } from '../lib/protocol/types';
 import { cn } from '../lib/utils';
-import { useProtocol } from '../lib/protocol/ProtocolContext';
+import { MockProtocolSource } from '../lib/protocol/mock-source';
 
 const ActorIcon = ({ type, active }: { type: Actor; active?: boolean; }) => {
   const props = { className: cn("w-10 h-10 transition-all duration-700", active ? "text-primary scale-110" : "text-muted-foreground/60") };
@@ -18,14 +18,34 @@ const ActorIcon = ({ type, active }: { type: Actor; active?: boolean; }) => {
 };
 
 export const ProtocolFlow = () => {
-  const {
-    steps,
-    currentStepIdx,
-    currentStep,
-    nextStep,
-    prevStep,
-    goToStep,
-  } = useProtocol();
+  const [steps, setSteps] = useState<ProtocolStep[]>([]);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
+
+  useEffect(() => {
+    const loadSteps = async () => {
+      const source = new MockProtocolSource();
+      const mockSteps = await source.getSteps();
+      setSteps(mockSteps);
+      setCurrentStepIdx(0);
+    };
+    loadSteps();
+  }, []);
+
+  const nextStep = useCallback(() => {
+    setCurrentStepIdx(prev => Math.min(prev + 1, steps.length - 1));
+  }, [steps.length]);
+
+  const prevStep = useCallback(() => {
+    setCurrentStepIdx(prev => Math.max(prev - 1, 0));
+  }, []);
+
+  const goToStep = useCallback((idx: number) => {
+    if (idx >= 0 && idx < steps.length) {
+      setCurrentStepIdx(idx);
+    }
+  }, [steps.length]);
+
+  const currentStep = steps[currentStepIdx] || null;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
