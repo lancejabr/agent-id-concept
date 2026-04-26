@@ -1,10 +1,13 @@
-import { Button } from "@/components/ui/button";
+import { ProtocolFlow } from './components/ProtocolFlow';
+import { ProtocolProvider } from './lib/protocol/ProtocolContext';
 
 function App() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <Button>My App is Ready</Button>
-    </div>
+    <ProtocolProvider>
+      <main className="min-h-screen bg-background text-foreground py-12">
+        <ProtocolFlow />
+      </main>
+    </ProtocolProvider>
   );
 }
 
