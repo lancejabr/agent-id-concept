@@ -1,9 +1,8 @@
 import { useMemo, useEffect } from 'react';
-import { User, Server, ChevronRight, ChevronLeft, ShieldAlert, Activity, Bot, ClipboardList, Code, Fingerprint, CheckCircle2, Circle } from 'lucide-react';
+import { User, Server, ShieldAlert, Activity, Bot, ClipboardList, Code, Fingerprint, CheckCircle2, Circle } from 'lucide-react';
 import { ACTORS } from '../lib/protocol/actors';
 import type { Actor } from '../lib/protocol/types';
 import { cn } from '../lib/utils';
-import { Button } from '@/components/ui/button';
 import { useProtocol } from '../lib/protocol/ProtocolContext';
 
 const ActorIcon = ({ type, active }: { type: Actor; active?: boolean; }) => {
@@ -97,7 +96,7 @@ export const ProtocolFlow = () => {
           </div>
         ) : (
           <>
-            {/* THE STAGE: CINEMATIC VISUALIZATION */}
+            {/* MAIN STAGE */}
             <div className="flex-1 relative p-8 bg-gradient-to-b from-muted/5 to-transparent border-b overflow-hidden min-h-[680px]">
               {/* Trust Mesh Background */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.08]">
@@ -269,22 +268,11 @@ export const ProtocolFlow = () => {
               {/* Control Center Row */}
               <div className="p-8 bg-background flex flex-col gap-8">
                 <div className="flex items-center gap-8 max-w-[1400px] mx-auto w-full px-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={prevStep}
-                    disabled={currentStepIdx === 0}
-                    className="px-6 font-black h-11 border-2 rounded-xl hover:bg-muted text-xs tracking-tighter shrink-0"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    BACK
-                  </Button>
-
                   <div className="flex-1 flex justify-between relative px-0 items-center h-12">
-                    <div className="absolute top-1/2 -translate-y-1/2 left-[5%] right-[5%] h-1 bg-muted -z-0 rounded-full" />
+                    <div className="absolute top-1/2 -translate-y-1/2 h-1 bg-muted -z-0 rounded-full" style={{ left: '36px', right: '36px' }} />
                     <div
-                      className="absolute top-1/2 -translate-y-1/2 left-[5%] h-1 bg-primary transition-all duration-1000 -z-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.4)]"
-                      style={{ width: steps.length > 1 ? `calc(${(currentStepIdx / (steps.length - 1)) * 90}%)` : '0%' }}
+                      className="absolute top-1/2 -translate-y-1/2 h-1 bg-primary transition-all duration-1000 -z-0 rounded-full shadow-[0_0_15px_rgba(var(--primary),0.4)]"
+                      style={{ left: '36px', width: steps.length > 1 ? `calc(${(currentStepIdx / (steps.length - 1)) * 100}% - ${(currentStepIdx / (steps.length - 1)) * 72}px)` : '0%' }}
                     />
 
                     {steps.map((step, idx) => (
@@ -310,16 +298,6 @@ export const ProtocolFlow = () => {
                       </button>
                     ))}
                   </div>
-
-                  <Button
-                    size="sm"
-                    onClick={nextStep}
-                    disabled={steps.length === 0 || currentStepIdx === steps.length - 1}
-                    className="px-8 font-black h-11 rounded-xl shadow-xl shadow-primary/20 text-xs tracking-tighter group transition-all duration-500 shrink-0"
-                  >
-                    {currentStepIdx === steps.length - 1 ? 'RESTART' : 'NEXT STEP'}
-                    <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </Button>
                 </div>
               </div>
             </div>
