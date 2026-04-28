@@ -15,7 +15,14 @@ export interface ActorInfo {
   icon: string;
 }
 
+export interface IdComponent {
+  label: string;
+  value: string;
+  active: boolean;
+}
+
 export interface ProtocolSource {
-  getSteps(): Promise<ProtocolStep[]>;
+  getSteps(flowName?: string): Promise<ProtocolStep[]>;
+  getIdState?(flowName: string, stepIdx: number, currentStep: ProtocolStep | null): Promise<IdComponent[]>;
   onStep?(callback: (step: ProtocolStep) => void): void;
 }

@@ -1,9 +1,9 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
-import { User, Server, ShieldAlert, Activity, Bot, ClipboardList, Code, Fingerprint, CheckCircle2, Circle } from 'lucide-react';
+import { User, Server, ShieldAlert, Activity, Bot, ClipboardList, Code, Fingerprint, CheckCircle2, Circle, LayoutGrid } from 'lucide-react';
 import { ACTORS } from '../lib/protocol/actors';
-import type { Actor, ProtocolStep } from '../lib/protocol/types';
+import type { Actor, ProtocolStep, IdComponent } from '../lib/protocol/types';
 import { cn } from '../lib/utils';
-import { MockProtocolSource } from '../lib/protocol/mock-source';
+import { MockProtocolSource, MOCK_PROTOCOL_FLOWS } from '../lib/protocol/mock-source';
 
 const ActorIcon = ({ type, active }: { type: Actor; active?: boolean; }) => {
   const props = { className: cn("w-10 h-10 transition-all duration-700", active ? "text-primary scale-110" : "text-muted-foreground/60") };
@@ -20,16 +20,34 @@ const ActorIcon = ({ type, active }: { type: Actor; active?: boolean; }) => {
 export const ProtocolFlow = () => {
   const [steps, setSteps] = useState<ProtocolStep[]>([]);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [activeFlow, setActiveFlow] = useState<string>(Object.keys(MOCK_PROTOCOL_FLOWS)[0]);
+  const [idComponents, setIdComponents] = useState<IdComponent[]>([]);
 
   useEffect(() => {
     const loadSteps = async () => {
       const source = new MockProtocolSource();
-      const mockSteps = await source.getSteps();
+      const mockSteps = await source.getSteps(activeFlow);
       setSteps(mockSteps);
-      setCurrentStepIdx(0);
+      // We keep currentStepIdx the same, but ensure it's within bounds
+      setCurrentStepIdx(prev => Math.min(prev, mockSteps.length - 1));
     };
     loadSteps();
-  }, []);
+  }, [activeFlow]);
+
+  const currentStep = steps[currentStepIdx] || null;
+
+  useEffect(() => {
+    const loadIdState = async () => {
+      const source = new MockProtocolSource();
+      if (source.getIdState) {
+        const components = await source.getIdState(activeFlow, currentStepIdx, currentStep);
+        setIdComponents(components);
+      } else {
+        setIdComponents([]);
+      }
+    };
+    loadIdState();
+  }, [activeFlow, currentStepIdx, currentStep]);
 
   const nextStep = useCallback(() => {
     setCurrentStepIdx(prev => Math.min(prev + 1, steps.length - 1));
@@ -44,8 +62,6 @@ export const ProtocolFlow = () => {
       setCurrentStepIdx(idx);
     }
   }, [steps.length]);
-
-  const currentStep = steps[currentStepIdx] || null;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -75,17 +91,6 @@ export const ProtocolFlow = () => {
     return { start, end };
   }, [currentStep, actorCoords]);
 
-  const idComponents = useMemo(() => [
-    { label: 'Deployer ID', value: 'deployer_101', active: currentStepIdx >= 1 },
-    { label: 'Request ID', value: 'req_001', active: currentStepIdx >= 1 },
-    { label: 'Model ID', value: 'model_xyz', active: currentStepIdx >= 3 },
-    { label: 'Dev Signature', value: 'sig_p4k9...', active: currentStepIdx >= 3 },
-    { label: 'Agent ID', value: 'agent_v2_alpha', active: currentStepIdx >= 4 },
-    { label: 'Attestation', value: 'sig_p4k9...', active: currentStepIdx >= 4 },
-    { label: 'Policy Rules', value: 'OPA Bounds', active: currentStepIdx >= 6 },
-    { label: 'DPoP Token', value: 'dpop_at_98f2...', active: currentStepIdx >= 7 },
-  ], [currentStepIdx]);
-
   return (
     <div className="flex flex-col h-full max-w-[1500px] mx-auto p-6 gap-6">
       {/* Header: Consolidated Single-Line */}
@@ -101,6 +106,23 @@ export const ProtocolFlow = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <div className="flex bg-muted/30 p-1 rounded-xl border border-border/50 backdrop-blur-sm">
+            {Object.keys(MOCK_PROTOCOL_FLOWS).map((flow) => (
+              <button
+                key={flow}
+                onClick={() => setActiveFlow(flow)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2",
+                  activeFlow === flow
+                    ? "bg-background text-primary shadow-lg ring-1 ring-black/5"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LayoutGrid className={cn("w-3.5 h-3.5", activeFlow === flow ? "text-primary" : "text-muted-foreground/50")} />
+                {flow}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -226,34 +248,36 @@ export const ProtocolFlow = () => {
               })}
 
               {/* LIVE AGENT ID STATE BOX */}
-              <div className="absolute bottom-6 left-6 z-30 w-[320px] bg-background/95 backdrop-blur-xl border-2 border-primary/20 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 pointer-events-auto">
-                <div className="bg-primary/10 px-3 py-2 border-b border-primary/20 flex items-center gap-2">
-                  <Fingerprint className="w-4 h-4 text-primary" />
-                  <h3 className="text-[10px] font-black tracking-widest uppercase text-primary">Agent ID State</h3>
-                </div>
-                <div className="p-2.5 bg-muted/5 flex flex-col gap-1">
-                  {idComponents.map((comp, idx) => (
-                    <div key={idx} className={cn(
-                      "flex items-center justify-between px-2 py-1 rounded-md border transition-all duration-500",
-                      comp.active ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-muted/10 border-transparent opacity-40 grayscale"
-                    )}>
-                      <div className="flex items-center gap-2">
-                        {comp.active ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                          <Circle className="w-3.5 h-3.5 text-muted-foreground" />
-                        )}
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", comp.active ? "text-foreground" : "text-muted-foreground")}>
-                          {comp.label}
+              {idComponents.length > 0 && (
+                <div className="absolute bottom-6 left-6 z-30 w-[320px] bg-background/95 backdrop-blur-xl border-2 border-primary/20 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 pointer-events-auto">
+                  <div className="bg-primary/10 px-3 py-2 border-b border-primary/20 flex items-center gap-2">
+                    <Fingerprint className="w-4 h-4 text-primary" />
+                    <h3 className="text-[10px] font-black tracking-widest uppercase text-primary">Agent ID State</h3>
+                  </div>
+                  <div className="p-2.5 bg-muted/5 flex flex-col gap-1">
+                    {idComponents.map((comp, idx) => (
+                      <div key={idx} className={cn(
+                        "flex items-center justify-between px-2 py-1 rounded-md border transition-all duration-500",
+                        comp.active ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-muted/10 border-transparent opacity-40 grayscale"
+                      )}>
+                        <div className="flex items-center gap-2">
+                          {comp.active ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          ) : (
+                            <Circle className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                          <span className={cn("text-[10px] font-bold uppercase tracking-wider", comp.active ? "text-foreground" : "text-muted-foreground")}>
+                            {comp.label}
+                          </span>
+                        </div>
+                        <span className={cn("text-[9px] font-mono truncate max-w-[120px]", comp.active ? "text-primary" : "text-muted-foreground")}>
+                          {comp.value}
                         </span>
                       </div>
-                      <span className={cn("text-[9px] font-mono truncate max-w-[120px]", comp.active ? "text-primary" : "text-muted-foreground")}>
-                        {comp.value}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* DASHBOARD */}
